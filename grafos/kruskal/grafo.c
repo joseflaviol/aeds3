@@ -29,15 +29,11 @@ void inicializaUF(Grafo *grafo);
 int find(int vertice);
 void unionByRank(int vertice1, int vertice2);
 
-int main(/*int argc, char *argv[]*/) {
+int main() {
 
     Grafo *grafo;
 
-    /*if (argc < 1) {
-        exit(0);
-    }*/
-
-    inicializa(&grafo, /*argv[0]*/ "grafo.txt");
+    inicializa(&grafo, "grafo.txt");
 
     int i;
     Item *p;
@@ -49,8 +45,6 @@ int main(/*int argc, char *argv[]*/) {
             p = p->proximo;
         }
     }
-
-    dijkstra(grafo, 0);
 
     free(grafo->listaAdj);
     free(grafo);
@@ -133,5 +127,12 @@ int find(int vertice) {
     return vertice;
 }
 void unionByRank(int vertice1, int vertice2) {
-    
+    if (altura[vertice1] > altura[vertice2]) {
+        chefe[vertice2] = vertice1;
+    } else {
+        chefe[vertice1] = vertice2;
+        if (altura[vertice1] == altura[vertice2]) {
+            altura[vertice2] = altura[vertice1] + 1;
+        }
+    }
 }
