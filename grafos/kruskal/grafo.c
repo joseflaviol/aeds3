@@ -15,6 +15,7 @@ typedef struct {
 
 typedef struct {
     int numeroVertices;
+    Lista     *arestas;
     Lista   **listaAdj;
 } Grafo;
 
@@ -28,6 +29,7 @@ void adicionaAresta(Grafo *grafo, int vertice1, int vertice2, int peso);
 void inicializaUF(Grafo *grafo);
 int find(int vertice);
 void unionByRank(int vertice1, int vertice2);
+void mstKruskal(Grafo *grafo);
 
 int main() {
 
@@ -135,4 +137,8 @@ void unionByRank(int vertice1, int vertice2) {
             altura[vertice2] = altura[vertice1] + 1;
         }
     }
+}
+
+void mstKruskal(Grafo *grafo) {
+    Lista *listaArestas;
 }

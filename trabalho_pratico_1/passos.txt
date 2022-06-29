@@ -1,0 +1,4 @@
+1. Ler um grafo de um arquivo
+2. Montar sua representação computacional
+3. Computar a Árvore Geradora Mínima neste grafo
+4. Encontrar o maior subgrafo induzido de 3 vértices
