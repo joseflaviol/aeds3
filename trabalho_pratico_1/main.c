@@ -19,8 +19,9 @@ typedef struct {
 int *altura;
 int *chefe;
 Aresta *pq;
-Aresta *mst;
+Grafo *mst;
 
+void alocaGrafo(Grafo **grafo, int numeroVertices, int numeroArestas);
 void iniciaGrafo(Grafo **grafo, char *nomeArquivo);
 void adicionaAresta(Grafo *grafo, int v1, int v2, double peso);
 
@@ -28,37 +29,46 @@ void inicializaUF(Grafo *grafo);
 int find(int vertice);
 void unionByRank(int vertice1, int vertice2);
 
-void ordena(Aresta *pq, int tamanho);
+int separa (Aresta *v, int p, int r);
+void qcksrt (Aresta *v, int p, int r);
 
 void mstKruskal(Grafo *grafo);
+
+void maiorSubGrafoInduzido(Grafo *grafo);
 
 int main() {
     
     Grafo *grafo;
     
-    iniciaGrafo(&grafo, "grafo.txt");
+    iniciaGrafo(&grafo, "att532.txt");
     
     mstKruskal(grafo);
-   
-    for (int i = 0; i < grafo->numeroVertices; i++) {
-        printf("%d %d %.2lf\n", mst[i].vertice1, mst[i].vertice2, mst[i].peso);
-    }
-
-    free(pq);
-    free(mst);
-    free(grafo);
+ 
+    maiorSubGrafoInduzido(mst);
     
     return 0;
 
 }
 
+void alocaGrafo(Grafo **grafo, int numeroVertices, int numeroArestas) {
+    int i;
+
+    ( *grafo ) = malloc(sizeof(Grafo));
+    ( *grafo )->numeroVertices = numeroVertices;
+    ( *grafo )->numeroArestas = numeroArestas;
+    ( *grafo )->arestas = malloc(sizeof(Aresta) * ( *grafo )->numeroArestas );
+    ( *grafo )->listaAdjacencia = malloc(sizeof(Aresta *) * numeroVertices);
+
+    for (i = 0; i < numeroVertices; i++) {
+        ( *grafo )->listaAdjacencia[i] = NULL;
+    }
+}
+
 void iniciaGrafo(Grafo **grafo, char *nomeArquivo) {
     int i, j, k, cont;
     double x, y, peso;
-    double **coordenadas;
+    double *coordenadas;
     FILE *arq;
-    
-    ( *grafo ) = malloc(sizeof(Grafo));
     
     arq = fopen(nomeArquivo, "r+");
     
@@ -69,29 +79,22 @@ void iniciaGrafo(Grafo **grafo, char *nomeArquivo) {
     
     fclose(arq);
     
-    ( *grafo )->numeroVertices = cont;
-    ( *grafo )->numeroArestas = (cont - 1) * (cont) / 2;
-    ( *grafo )->arestas = malloc(sizeof(Aresta) * ( *grafo )->numeroArestas );
-    ( *grafo )->listaAdjacencia = malloc(sizeof(Aresta *) * cont);
+    alocaGrafo(grafo, cont, (cont - 1) * (cont) / 2);
+
+    coordenadas = (double *) malloc(sizeof(double) * cont * 2);
     
-    coordenadas = (double **) malloc(sizeof(double *) * cont);
-    for (i = 0; i < cont; i++) {
-        ( *grafo )->listaAdjacencia[i] = NULL;
-        coordenadas[i] = (double *) malloc(sizeof(double) * 2);
-    }
-            
     arq = fopen(nomeArquivo, "r+");
     
     while (fscanf(arq, "%d %lf %lf", &i, &x, &y) != EOF) {
-        coordenadas[i - 1][0] = x;
-        coordenadas[i - 1][1] = y;
+        coordenadas[(i - 1) * 2] = x;
+        coordenadas[(i - 1) * 2 + 1] = y;
     }
-    
+   
     fclose(arq);
     
     for (i = 0, k = 0; i < cont; i++) {
         for (j = i + 1; j < cont; j++) {
-            peso = sqrt( pow( coordenadas[j][0] - coordenadas[i][0] , 2 ) +  pow( coordenadas[j][1] - coordenadas[i][1] , 2 ) );
+            peso = sqrt( pow( coordenadas[j * 2] - coordenadas[i * 2] , 2 ) +  pow( coordenadas[j * 2 + 1] - coordenadas[i * 2 + 1] , 2 ) );
             adicionaAresta(*grafo, i, j, peso);
             adicionaAresta(*grafo, j, i, peso);
             ( *grafo )->arestas[k++] = ( * ( *grafo )->listaAdjacencia[i] );
@@ -143,40 +146,99 @@ void unionByRank(int vertice1, int vertice2) {
     }
 }
 
-void ordena(Aresta *pq, int tamanho) {
-    int i, j;
-    Aresta chave;
+int separa (Aresta *v, int p, int r) {
+   Aresta c = v[r]; // pivô
+   Aresta t; 
+   int j = p;
+   for (int k = p; /*A*/ k < r; ++k)
+      if (v[k].peso <= c.peso) {
+         t = v[j], v[j] = v[k], v[k] = t;
+         ++j; 
+      } 
+   t = v[j], v[j] = v[r], v[r] = t;
+   return j; 
+}
 
-    for (i = 1; i < tamanho; i++) {
-        chave = pq[i];
-        j = i - 1;
-        while (j > -1 && chave.peso < pq[j].peso) {
-            pq[j + 1] = pq[j];
-            j--;
-        }
-        pq[j + 1] = chave;
-    }
+void qcksrt (Aresta *v, int p, int r) {
+   while (p < r) {          
+      int j = separa (v, p, r); 
+      qcksrt (v, p, j-1);
+      p = j + 1;            
+   }
 }
 
 void mstKruskal(Grafo *grafo) {
     int i, j;
-    Aresta chave;
     
-    mst = malloc(sizeof(Aresta) * (grafo->numeroVertices - 1));
-    pq = malloc(sizeof(Aresta) * grafo->numeroArestas);
+    alocaGrafo(&mst, grafo->numeroVertices, grafo->numeroVertices - 1);
     
     inicializaUF(grafo);
+     
+    qcksrt(grafo->arestas, 0, grafo->numeroArestas - 1);
     
-    for (i = 0; i < grafo->numeroArestas; i++) {
-        pq[i] = grafo->arestas[i];
-    }
-    
-    ordena(pq, grafo->numeroArestas);
-
-    for (i = 0, j = 0; i < grafo->numeroArestas; i++) {
-        if (find(pq[i].vertice1) != find(pq[i].vertice2)) {
-            mst[j++] = pq[i];
-            unionByRank(pq[i].vertice1, pq[i].vertice2);
+    for (i = 0, j = 0; j < grafo->numeroVertices - 1; i++) {
+        if (find(grafo->arestas[i].vertice1) != find(grafo->arestas[i].vertice2)) {
+            adicionaAresta(mst, grafo->arestas[i].vertice1, grafo->arestas[i].vertice2, grafo->arestas[i].peso);
+            adicionaAresta(mst, grafo->arestas[i].vertice2, grafo->arestas[i].vertice1, grafo->arestas[i].peso);
+            mst->arestas[j++] = grafo->arestas[i];  
+            unionByRank(grafo->arestas[i].vertice1, grafo->arestas[i].vertice2);
         }
     }   
+
+}
+
+void maiorSubGrafoInduzido(Grafo *grafo) {
+    int i;
+    int maiorV[3];
+    double peso, maiorPeso = 0;
+    Aresta *aux, *aux2;
+
+    for (i = 0; i < grafo->numeroVertices; i++) {
+        aux = grafo->listaAdjacencia[i];
+        while (aux != NULL) {
+            peso = aux->peso;
+
+            aux2 = grafo->listaAdjacencia[aux->vertice2];
+            while (aux2 != NULL) {
+                if (aux2->vertice2 > i && peso + aux2->peso > maiorPeso) {
+                    maiorV[0] = aux->vertice1;
+                    maiorV[1] = aux->vertice2;
+                    maiorV[2] = aux2->vertice2;
+                    maiorPeso = peso + aux2->peso;
+                }
+                aux2 = aux2->proximo;
+            }
+            
+            aux = aux->proximo;
+        }    
+    }
+
+    /*aux = &grafo->arestas[grafo->numeroArestas - 1];
+    aux2 = grafo->listaAdjacencia[aux->vertice1];
+    
+    while (aux2 != NULL) {
+        if (aux2->vertice2 != aux->vertice1 && aux2->peso + aux->peso > maiorPeso) {
+            maiorV[0] = aux->vertice1;
+            maiorV[1] = aux->vertice2;
+            maiorV[2] = aux2->vertice2;
+            maiorPeso = aux->peso + aux2->peso;
+        }
+        aux2 = aux2->proximo;
+    }
+
+    aux2 = grafo->listaAdjacencia[aux->vertice2];
+
+    while (aux2 != NULL) {
+        if (aux2->vertice2 != aux->vertice2 && aux2->peso + aux->peso > maiorPeso) {
+            maiorV[0] = aux->vertice1;
+            maiorV[1] = aux->vertice2;
+            maiorV[2] = aux2->vertice2;
+            maiorPeso = aux->peso + aux2->peso;
+        }
+        aux2 = aux2->proximo;
+    }*/
+
+    printf("%d %d %d\n", maiorV[0], maiorV[1], maiorV[2]);
+    printf("%.2lf\n", maiorPeso);
+
 }
