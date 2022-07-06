@@ -18,7 +18,6 @@ typedef struct {
 
 int *altura;
 int *chefe;
-Aresta *pq;
 Grafo *mst;
 
 void alocaGrafo(Grafo **grafo, int numeroVertices, int numeroArestas);
@@ -48,7 +47,9 @@ int main(int argc, char *argv[]) {
     iniciaGrafo(&grafo, argv[1]);
     
     mstKruskal(grafo);
- 
+
+    printf("%s\n", argv[1]);
+
     maiorSubGrafoInduzido(mst);
     
     return 0;
@@ -158,25 +159,25 @@ void unionByRank(int vertice1, int vertice2) {
 }
 
 int separa (Aresta **v, int p, int r) {
-   Aresta *c = v[r]; // pivô
-   Aresta *t; 
-   int j = p;
-   for (int k = p; /*A*/ k < r; ++k) {
-      if (v[k]->peso <= c->peso) {
-         t = v[j], v[j] = v[k], v[k] = t;
-         ++j; 
-      }
-   }
-   t = v[j], v[j] = v[r], v[r] = t;
-   return j; 
+    Aresta *c = v[r]; // pivô
+    Aresta *t; 
+    int j = p;
+    for (int k = p; /*A*/ k < r; ++k) {
+        if (v[k]->peso <= c->peso) {
+            t = v[j], v[j] = v[k], v[k] = t;
+            ++j; 
+        }
+    }
+    t = v[j], v[j] = v[r], v[r] = t;
+    return j; 
 }
 
 void qcksrt (Aresta **v, int p, int r) {
-   while (p < r) {          
-      int j = separa (v, p, r); 
-      qcksrt (v, p, j-1);
-      p = j + 1;            
-   }
+    while (p < r) {          
+        int j = separa (v, p, r); 
+        qcksrt (v, p, j-1);
+        p = j + 1;            
+    }
 }
 
 void mstKruskal(Grafo *grafo) {
@@ -189,22 +190,16 @@ void mstKruskal(Grafo *grafo) {
      
     qcksrt(grafo->arestas, 0, grafo->numeroArestas - 1);
     
-    FILE *arq = fopen("mst.txt", "w+");
-
     for (i = 0, j = 0; j < grafo->numeroVertices - 1; i++) {
         findV1 = find(grafo->arestas[i]->vertice1);
         findV2 = find(grafo->arestas[i]->vertice2);
         if (findV1 != findV2) {
-            fprintf(arq, "%d %d %.2lf\n", grafo->arestas[i]->vertice1, grafo->arestas[i]->vertice2, grafo->arestas[i]->peso);
             adicionaAresta(mst, grafo->arestas[i]->vertice1, grafo->arestas[i]->vertice2, grafo->arestas[i]->peso);
             adicionaAresta(mst, grafo->arestas[i]->vertice2, grafo->arestas[i]->vertice1, grafo->arestas[i]->peso);
-            mst->arestas[j++] = grafo->arestas[i];  
+            mst->arestas[j++] = mst->arestas[grafo->arestas[i]->vertice1];  
             unionByRank(findV1, findV2);
         }
     }   
-
-    fclose(arq);
-    //exit(0);
 }
 
 void maiorSubGrafoInduzido(Grafo *grafo) {
@@ -213,58 +208,20 @@ void maiorSubGrafoInduzido(Grafo *grafo) {
     double peso, maiorPeso = 0;
     Aresta *aux, *aux2;
 
-    FILE *arq = fopen("subgrafos.txt", "w+");
-
     for (i = 0; i < grafo->numeroVertices; i++) {
-        aux = grafo->listaAdjacencia[i];
-        while (aux != NULL) {
+        for (aux = grafo->listaAdjacencia[i]; aux != NULL; aux = aux->proximo) {
             peso = aux->peso;
-
-            aux2 = grafo->listaAdjacencia[aux->vertice2];
-            while (aux2 != NULL) {
-                fprintf(arq, "%d %d %d %.2lf = (%d %d %.2lf) + (%d %d %.2lf)\n", aux->vertice1, aux->vertice2, aux2->vertice2, peso + aux2->peso, aux->vertice1, aux->vertice2, aux->peso, aux2->vertice1, aux2->vertice2, aux2->peso);
+            for (aux2 = grafo->listaAdjacencia[aux->vertice2]; aux2 != NULL; aux2 = aux2->proximo) {
                 if (aux2->vertice2 > i && peso + aux2->peso > maiorPeso) {
                     maiorV[0] = aux->vertice1;
                     maiorV[1] = aux->vertice2;
                     maiorV[2] = aux2->vertice2;
                     maiorPeso = peso + aux2->peso;
                 }
-                aux2 = aux2->proximo;
             }
-            
-            aux = aux->proximo;
-        }    
+        }  
     }
-
-    fclose(arq);
-
-    /*int v1 = grafo->arestas[grafo->numeroArestas - 1]->vertice1;
-    int v2 = grafo->arestas[grafo->numeroArestas - 1]->vertice2;
-    int v3;
-    double peso = grafo->arestas[grafo->numeroArestas - 1]->peso;
-    double maiorPeso = 0;
-    Aresta *aux = grafo->listaAdjacencia[v2];
-
-    while (aux != NULL) {
-        if (aux->vertice2 > v1 &&  aux->peso + peso > maiorPeso) {
-            v3 = aux->vertice2;
-            maiorPeso = aux->peso + peso;
-        }
-        aux = aux->proximo;
-    }
-
-    aux = grafo->listaAdjacencia[v1];
-
-    while (aux != NULL) {
-        if (aux->vertice2 != v2 &&  aux->peso + peso > maiorPeso) {
-            v3 = aux->vertice2;
-            maiorPeso = aux->peso + peso;
-        }
-        aux = aux->proximo;
-    }*/
 
     printf("%d %d %d\n", maiorV[0], maiorV[1], maiorV[2]);
-    //printf("%d %d %d\n", v1, v2, v3);
     printf("%.2lf\n", maiorPeso);
-
 }
