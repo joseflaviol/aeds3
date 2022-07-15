@@ -2,8 +2,10 @@
 #include <stdlib.h>
 
 int **matrizAdj;
+int **mFloyd;
 int **predecessores;
 
+void iniciaMatrizes(int numeroVertices);
 void montaMatriz(char *nomeArq, int *numeroVertices);
 void floydWarshall(int numeroVertices);
 void exibeCaminho(int inicio, int destino);
@@ -26,6 +28,20 @@ int main(int argc, char **argv) {
 
 }
 
+void iniciaMatrizes(int numeroVertices) {
+    int i;
+
+    matrizAdj = (int **) calloc(numeroVertices, sizeof(int *));
+    mFloyd = (int **) calloc(numeroVertices, sizeof(int *));
+    predecessores = (int **) calloc(numeroVertices, sizeof(int *));
+
+    for (i = 0; i < numeroVertices; i++) {
+        matrizAdj[i] = (int *) calloc(numeroVertices, sizeof(int));
+        mFloyd[i] = (int *) calloc(numeroVertices, sizeof(int));
+        predecessores[i] = (int *) calloc(numeroVertices, sizeof(int));
+    }
+}
+
 void montaMatriz(char *nomeArq, int *numeroVertices) {
     int i, j, peso;
     FILE *arq = fopen(nomeArq, "r");
@@ -37,13 +53,9 @@ void montaMatriz(char *nomeArq, int *numeroVertices) {
 
     fscanf(arq, "%d", numeroVertices);
 
-    matrizAdj = (int **) malloc(sizeof(int *) * (*numeroVertices));
+    iniciaMatrizes(*numeroVertices);
 
-    for (i = 0; i < *numeroVertices; i++) {
-        matrizAdj[i] = (int *) calloc(*numeroVertices, sizeof(int));
-    }
-
-    while(fscanf(arq, "%d %d %d", &i, &j, &peso) != EOF) {
+    while (fscanf(arq, "%d %d %d", &i, &j, &peso) != EOF) {
         matrizAdj[i][j] = peso;
         matrizAdj[j][i] = peso;
     }
@@ -53,27 +65,25 @@ void montaMatriz(char *nomeArq, int *numeroVertices) {
 void floydWarshall(int numeroVertices) {
     int i, j, k;
     int maiorJ, maiorK, maiorPeso;
-    int **mFloyd;
-
-    mFloyd = (int **) malloc(sizeof(int *) * numeroVertices);
-    predecessores = (int **) malloc(sizeof(int *) * numeroVertices);
 
     for (i = 0; i < numeroVertices; i++) {
-        mFloyd[i] = (int *) malloc(sizeof(int) * numeroVertices);
-        predecessores[i] = (int *) calloc(numeroVertices, sizeof(int));
-        for (j = 0; j < numeroVertices; j++) {
+        for (j = i + 1; j < numeroVertices; j++) {
             mFloyd[i][j] = i == j ? 0 : matrizAdj[i][j] == 0 ? 10000 : matrizAdj[i][j];
+            mFloyd[j][i] = mFloyd[i][j]; 
             predecessores[i][j] = i;
+            predecessores[j][i] = j;
         }
     }
-
+    
     maiorPeso = 0;
     for (i = 0; i < numeroVertices; i++) {
         for (j = 0; j < numeroVertices; j++) {
-            for (k = 0; k < numeroVertices; k++) {
+            for (k = j + 1; k < numeroVertices; k++) {
                 if (mFloyd[j][i] + mFloyd[i][k] < mFloyd[j][k]) {
                     mFloyd[j][k] = mFloyd[j][i] + mFloyd[i][k];
+                    mFloyd[k][j] = mFloyd[j][k];
                     predecessores[j][k] = predecessores[i][k];
+                    predecessores[k][j] = predecessores[i][j];
                 }
                 if (i + 1 == numeroVertices && mFloyd[j][k] > maiorPeso) {
                     maiorJ = j;
