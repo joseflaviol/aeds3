@@ -31,14 +31,14 @@ int main(int argc, char **argv) {
 void iniciaMatrizes(int numeroVertices) {
     int i;
 
-    matrizAdj = (int **) calloc(numeroVertices, sizeof(int *));
-    mFloyd = (int **) calloc(numeroVertices, sizeof(int *));
-    predecessores = (int **) calloc(numeroVertices, sizeof(int *));
+    matrizAdj = (int **) malloc(numeroVertices * sizeof(int *));
+    mFloyd = (int **) malloc(numeroVertices * sizeof(int *));
+    predecessores = (int **) malloc(numeroVertices * sizeof(int *));
 
     for (i = 0; i < numeroVertices; i++) {
         matrizAdj[i] = (int *) calloc(numeroVertices, sizeof(int));
-        mFloyd[i] = (int *) calloc(numeroVertices, sizeof(int));
-        predecessores[i] = (int *) calloc(numeroVertices, sizeof(int));
+        mFloyd[i] = (int *) malloc(numeroVertices * sizeof(int));
+        predecessores[i] = (int *) malloc(numeroVertices * sizeof(int));
     }
 }
 
