@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 int numeroVertices;
-int **coordenadas;
-double **matrizAdj;
+int *coordenadas;
+double *matrizAdj;
 
-int leNumeroVertices(FILE *arq);
-void montaMatrizAdj(char *nomeArq);
+int leNumeroVertices(const char *nomeArq);
+void montaMatrizAdj(const char *nomeArq);
 
 int main(int argc, char **argv) {
 
@@ -18,30 +19,33 @@ int main(int argc, char **argv) {
     }
 
     montaMatrizAdj(argv[1]);
-
-    for (i = 0; i < numeroVertices; i++) {
+    
+    /*for (i = 0; i < numeroVertices; i++) {
         for (j = 0; j < numeroVertices; j++) {
-            printf("%d ", matrizAdj[i][j]);
+            printf("%.2lf ", matrizAdj[i * numeroVertices + j]);
         }
         printf("\n");
-    }
+    }*/
 
     return 0;
 
 }
 
-int leNumeroVertices(FILE *arq) {
-    int i, x, y;
-    int cont = 0;
+int leNumeroVertices(const char *nomeArq) {
+    int i;
+    int nV = 0;
 
-    while (fscanf(arq, "%d %d %d", &i, &x, &y) != EOF) {
-        cont++;
-    } 
+    for (i = 0; nomeArq[i] != '.'; i++) {
+        if (nomeArq[i] > 47 && nomeArq[i] < 58) {
+            nV *= 10;
+            nV += (nomeArq[i] - 48);
+        }
+    }
 
-    return cont;
+    return nV;
 }
 
-void montaMatrizAdj(char *nomeArq) {
+void montaMatrizAdj(const char *nomeArq) {
     int i, j, k;
     double peso;
     FILE *arq;
@@ -53,26 +57,23 @@ void montaMatrizAdj(char *nomeArq) {
         exit(0);
     }
 
-    numeroVertices = leNumeroVertices(arq);
+    numeroVertices = leNumeroVertices(nomeArq);
 
-    coordenadas = (int **) malloc(sizeof(int *) * numeroVertices);
-    matrizAdj = (double **) malloc(sizeof(double *) * numeroVertices);
-
-    for (i = 0; i < numeroVertices; i++) {
-        coordenadas[i] = (int *) malloc(sizeof(int) * 2);
-        matrizAdj[i] = (double *) malloc(sizeof(double) * numeroVertices);
-    }
+    coordenadas = (int *) malloc(sizeof(int) * numeroVertices * 2);
+    matrizAdj = (double *) malloc(sizeof(double) * numeroVertices * numeroVertices);
 
     while (fscanf(arq, "%d %d %d", &i, &j, &k) != EOF) {
-        coordenadas[i][0] = j;
-        coordenadas[i][1] = k;
+        coordenadas[(i - 1) * 2] = j;
+        coordenadas[(i - 1) * 2 + 1] = k;
     } 
+
+    fclose(arq);
 
     for (i = 0; i < numeroVertices; i++) {
         for (j = i + 1; j < numeroVertices; j++) {
-            peso = sqrt( pow(coordenadas[i][0] - coordenadas[j][0], 2) + pow( coordenadas[i][1] - coordenadas[j][1], 2) );
-            matrizAdj[i][j] = peso;
-            matrizAdj[j][i] = peso;
+            peso = sqrt( pow(coordenadas[i * 2] - coordenadas[j * 2], 2) + pow( coordenadas[i * 2 + 1] - coordenadas[j * 2 + 1], 2) );
+            matrizAdj[i * numeroVertices + j] = peso;
+            matrizAdj[j * numeroVertices + i] = peso;
         }
     }
 }
