@@ -2,30 +2,38 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 
-#define TAM_POPULACAO 100
-#define GERACOES 10000
+#define TAM_POPULACAO 50
 
 int numeroVertices;
 int *coordenadas;
+int *maiores;
 double *matrizAdj;
 int solucoes[TAM_POPULACAO][5];
 
+// funcoes auxiliares
 int leNumeroVertices(const char *nomeArq);
 void montaMatrizAdj(const char *nomeArq);
 bool contido(int i, int v, int n);
-void geraAleatorios();
 int left(int i, int j);
 int right(int i, int j);
 double calculaPeso(int index);
-int seleciona();
-void combina(int s1, int s2);
+int menor();
 int maior();
-void exibe(); 
+void exibeSolucao(int idx);
+
+// funcoes do algoritmo evolutivo
+void geraPopulacao();
+int seleciona();
+int combina(int s1, int s2);
+void muta(int idx);
+
 
 int main(int argc, char **argv) {
 
     int i, j, idxMaior;
+    int s1, s2;
 
     if (argc < 2) {
         printf("Informe o nome do arquivo\n");
@@ -36,38 +44,52 @@ int main(int argc, char **argv) {
     
     srand(1);
     
-    geraAleatorios();
+    geraPopulacao();
     
-    printf("---------------Geracao 0------------\n");
-    //exibe();
-    idxMaior = maior();
+    clock_t start = clock(), diff;
+    int msec = 0;    
+     
+    printf("%s\n", argv[1]); 
 
-    for (i = 0; i < 5; i++) {
-        printf("%d ", solucoes[idxMaior][i]);
-    }
-
-    printf("\n%.2f\n", calculaPeso(idxMaior));
-    printf("----------------------------------\n");
-    
-    for (i = 0; i < GERACOES; i++) {
+    while (msec <= 10) {
         for (j = 0; j < TAM_POPULACAO; j++) {
-            int s1 = seleciona();
-            int s2 = seleciona();
-            combina(s1, s2);
+            s1 = seleciona();
+            s2 = seleciona();
+            muta(combina(s1, s2));
         }
-        
-        printf("---------------Geracao %d------------\n", i + 1);
-        //exibe();
-        idxMaior = maior();
-
-        for (j = 0; j < 5; j++) {
-            printf("%d ", solucoes[idxMaior][j]);
-        }
-
-        printf("\n%.2f\n", calculaPeso(idxMaior));
-        printf("----------------------------------\n");
+        diff = clock() - start;
+        msec = (diff * 1000 / CLOCKS_PER_SEC) / 1000;
     }
+      
+    printf("10 segundos: \n\t");
+    exibeSolucao(maior());
 
+    while (msec <= 30) {
+        for (j = 0; j < TAM_POPULACAO; j++) {
+            s1 = seleciona();
+            s2 = seleciona();
+            muta(combina(s1, s2));
+        }
+        diff = clock() - start;
+        msec = (diff * 1000 / CLOCKS_PER_SEC) / 1000;
+    }
+    
+    printf("30 segundos: \n\t");
+    exibeSolucao(maior());
+    
+    while (msec <= 60) {
+        for (j = 0; j < TAM_POPULACAO; j++) {
+            s1 = seleciona();
+            s2 = seleciona();
+            muta(combina(s1, s2));
+        }
+        diff = clock() - start;
+        msec = (diff * 1000 / CLOCKS_PER_SEC) / 1000;
+    }
+    
+    printf("60 segundos: \n\t");
+    exibeSolucao(maior());
+    
     return 0;
 
 }
@@ -101,6 +123,7 @@ void montaMatrizAdj(const char *nomeArq) {
     numeroVertices = leNumeroVertices(nomeArq);
 
     coordenadas = (int *) malloc(sizeof(int) * numeroVertices * 2);
+    maiores = (int *) malloc(sizeof(int) * numeroVertices * 6);
     matrizAdj = (double *) malloc(sizeof(double) * numeroVertices * numeroVertices);
 
     while (fscanf(arq, "%d %d %d", &i, &j, &k) != EOF) {
@@ -130,7 +153,7 @@ bool contido(int i, int v, int n) {
     return false;
 }
 
-void geraAleatorios() {
+void geraPopulacao() {
     int i, j, v;
     for (i = 0; i < TAM_POPULACAO; i++) {
         for (j = 0; j < 5; j++) {
@@ -163,28 +186,17 @@ double calculaPeso(int index) {
     return soma;
 }
 
-double distancia(int s1, int s2) {
-    double soma = 0;
-
-    for (int i = 0; i < 5; i++) {
-        soma += pow(solucoes[s1][i] - solucoes[s2][i], 2);
-    }
-
-    return sqrt(soma);
-}
-
 int seleciona() {
-    int s1 = rand() % TAM_POPULACAO;
-    int s2 = rand() % TAM_POPULACAO;
-    int s3 = rand() % TAM_POPULACAO;
+    int s1, s2, s3;
+    double ps1, ps2, ps3;
 
-    double ps1 = calculaPeso(s1);
-    double ps2 = calculaPeso(s2);
-    double ps3 = calculaPeso(s3);
+    s1 = rand() % TAM_POPULACAO;
+    s2 = rand() % TAM_POPULACAO;
+    s3 = rand() % TAM_POPULACAO;
 
-    double ds1s2 = distancia(s1, s2);
-    double ds1s3 = distancia(s1, s3);
-    double ds2s3 = distancia(s2, s3);
+    ps1 = calculaPeso(s1);
+    ps2 = calculaPeso(s2);
+    ps3 = calculaPeso(s3);
 
     if (ps1 > ps2 && ps1 > ps3) {
         return s1;
@@ -195,16 +207,10 @@ int seleciona() {
     return s3;
 }
 
-void combina(int s1, int s2) {
+int combina(int s1, int s2) {
     int i;
     int n;
-    int idx;
-
-    if (calculaPeso(s1) > calculaPeso(s2)) {
-        idx = s2;
-    } else {
-        idx = s1;
-    }
+    int idx = menor();
 
     for ( i = 0; i < 5; i++ ) {
         if (i % 2 == 0) {
@@ -218,7 +224,46 @@ void combina(int s1, int s2) {
         }
 
         solucoes[idx][i] = n;
-    } 
+    }
+    
+    return idx;
+}
+
+void muta(int idx) {
+    int x = rand() % 5;
+    int y = rand() % 5;    
+    int nx = rand() % numeroVertices;
+    
+    while (contido(idx, nx, 5)) {
+        nx = rand() % numeroVertices;
+    }
+    
+    solucoes[idx][x] = nx;
+    
+    int ny = rand() % numeroVertices;
+    
+    while (contido(idx, ny, 5)) {
+        ny = rand() % numeroVertices;
+    }
+    
+    solucoes[idx][y] = ny;
+}
+
+int menor() {
+    int i;
+    int idxMenor = 0;
+    double pesoMenor = calculaPeso(idxMenor);
+    double pesoAux;
+
+    for (i = 1; i < TAM_POPULACAO; i++) {
+        pesoAux = calculaPeso(i);
+        if (pesoAux < pesoMenor) {
+            pesoMenor = pesoAux;
+            idxMenor = i;
+        }
+    }
+
+    return idxMenor;
 }
 
 int maior() {
@@ -238,15 +283,12 @@ int maior() {
     return idxMaior;
 }
 
-void exibe() {
-    int i, j;
-    double soma = 0;
-    for (i = 0; i < TAM_POPULACAO; i++) {
-        for (j = 0; j < 5; j++) {
-            printf("%d ", solucoes[i][j]);
-        }
-        
-        printf("\n%.2lf\n", calculaPeso(i));
+void exibeSolucao(int idx) {
+    int i;
+    for (i = 0; i < 5; i++) {
+        printf("%d ", solucoes[idx][i]);
     }
+
+    printf("\n\t%.2f\n", calculaPeso(idx));
 }
 
